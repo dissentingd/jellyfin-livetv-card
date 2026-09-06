@@ -31,11 +31,18 @@ Optional:
                        ./source_image.jpg or ./source_image.png in this
                        directory; falls back to the bundled default if
                        neither exists)
+    JELLYFIN_VERIFY_SSL  set to "false" if your server uses a self-signed
+                       certificate or plain HTTP (common for LAN-only
+                       installs) -- defaults to "true"
 
 Usage:
     python3 generate_livetv_card.py
     python3 generate_livetv_card.py --dry-run   # save the image locally, don't upload
+
+Requires Python 3.8+.
 """
+from __future__ import annotations
+
 import argparse
 import base64
 import os
@@ -166,12 +173,12 @@ def build_card_image(source_path: Path, library_name: str) -> bytes:
     return buf.getvalue()
 
 
-def find_live_tv_item_id(jellyfin_url: str, api_key: str, collection_type: str) -> str:
+def find_live_tv_item_id(jellyfin_url: str, api_key: str, collection_type: str, verify_ssl: bool) -> str:
     """Live TV (and any other UserView-type library) doesn't show up in
     /Library/MediaFolders -- confirmed live against a real server, not
     assumed -- so this has to go through a real user's /Views instead."""
     users = requests.get(
-        f"{jellyfin_url}/Users", params={"api_key": api_key}, timeout=15
+        f"{jellyfin_url}/Users", params={"api_key": api_key}, timeout=15, verify=verify_ssl
     )
     users.raise_for_status()
     admin_users = [u for u in users.json() if u.get("Policy", {}).get("IsAdministrator")]
@@ -186,6 +193,7 @@ def find_live_tv_item_id(jellyfin_url: str, api_key: str, collection_type: str) 
             f"{jellyfin_url}/Users/{user['Id']}/Views",
             params={"api_key": api_key},
             timeout=15,
+            verify=verify_ssl,
         )
         views.raise_for_status()
         for item in views.json().get("Items", []):
@@ -198,7 +206,7 @@ def find_live_tv_item_id(jellyfin_url: str, api_key: str, collection_type: str) 
     )
 
 
-def upload_image(jellyfin_url: str, api_key: str, item_id: str, png_bytes: bytes):
+def upload_image(jellyfin_url: str, api_key: str, item_id: str, png_bytes: bytes, verify_ssl: bool):
     # Jellyfin's Images/{type} upload endpoint expects the body base64-encoded,
     # not raw binary -- confirmed empirically (raw bytes get the connection
     # reset outright), not documented clearly anywhere obvious.
@@ -208,6 +216,7 @@ def upload_image(jellyfin_url: str, api_key: str, item_id: str, png_bytes: bytes
         headers={"Content-Type": "image/png"},
         data=base64.b64encode(png_bytes),
         timeout=30,
+        verify=verify_ssl,
     )
     response.raise_for_status()
 
@@ -232,6 +241,14 @@ def main():
     api_key = os.environ.get("JELLYFIN_API_KEY", "")
     library_name = os.environ.get("LIBRARY_NAME", "Live TV")
     source_image_env = os.environ.get("SOURCE_IMAGE")
+    verify_ssl = os.environ.get("JELLYFIN_VERIFY_SSL", "true").strip().lower() not in ("false", "0", "no")
+
+    if not verify_ssl:
+        # The user explicitly opted out (self-signed cert / plain HTTP, common
+        # for LAN-only installs) -- don't spam them with a warning about the
+        # choice they just deliberately made.
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     if not args.dry_run and (not jellyfin_url or not api_key):
         sys.exit(
@@ -253,9 +270,9 @@ def main():
         return
 
     print(f"Looking up the '{args.collection_type}' library on {jellyfin_url} ...")
-    item_id = find_live_tv_item_id(jellyfin_url, api_key, args.collection_type)
+    item_id = find_live_tv_item_id(jellyfin_url, api_key, args.collection_type, verify_ssl)
     print(f"Found it (item id {item_id}). Uploading the generated card ...")
-    upload_image(jellyfin_url, api_key, item_id, png_bytes)
+    upload_image(jellyfin_url, api_key, item_id, png_bytes, verify_ssl)
     print("Done. The new card should appear next time the home screen refreshes.")
 
 

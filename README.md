@@ -57,6 +57,24 @@ reimplementing, since Jellyfin never runs it for this item type at all.
    [Credits](#credits)) is used instead. Anything roughly 16:9 works best;
    other aspect ratios get center-cropped to fit.
 
+   **Self-signed certificate or plain HTTP?** Common for LAN-only installs
+   (e.g. `http://192.168.1.10:8096`, or HTTPS with your own cert) — set
+   `JELLYFIN_VERIFY_SSL=false` in `.env` (see `.env.example`), otherwise the
+   upload step will fail with a certificate-verification error.
+
+### Compatibility
+
+Works with **any Jellyfin installation type** — Docker, native package,
+Windows, Synology/QNAP, LinuxServer.io images, whatever. The script never
+touches Jellyfin's filesystem or runs inside its process; it only needs
+network access to your server's URL, so it doesn't matter how (or where)
+Jellyfin itself is installed, and the script itself doesn't have to run on
+the same machine as Jellyfin at all.
+
+Requires Python 3.8+ (tested through 3.14) and works on Windows, macOS, and
+Linux equally — `pathlib` handles path differences, and there's no
+platform-specific code anywhere in the script.
+
 ## Usage
 
 ```bash
@@ -104,6 +122,28 @@ have another such library, `--collection-type <value>` targets it instead of
    the normal library list, since it's a virtual view — this walks an admin
    user's actual `/Views` to find it) and uploads the finished PNG as that
    item's Primary image.
+
+## Cleanup
+
+Nothing here is required to keep once you're happy with the result — the
+change lives on your Jellyfin server, not in this folder. Safe to remove
+after a successful run:
+
+- **`.env`** — contains your API key in plain text. If you're not planning
+  to re-run this later (e.g. to swap the photo), delete it, and consider
+  revoking that key from Jellyfin's Dashboard → API Keys too.
+- **`source_image.jpg`** (or `.jpeg`/`.png`) — your own source photo, if you
+  provided one. The uploaded result is already saved on your Jellyfin
+  server; this local copy isn't needed afterward unless you want to re-run
+  the script later with a different edit of the same photo.
+- **`output_card.png`** — only created by `--dry-run`; a leftover preview,
+  safe to delete any time.
+- **`__pycache__/`** — Python's own bytecode cache, safe to delete any time
+  (Python just regenerates it next run, if there is one).
+
+Or, simplest of all: if you don't expect to ever re-run this, delete the
+whole cloned folder — the card you generated is already uploaded and
+doesn't depend on this repo existing anymore.
 
 ## Credits
 
