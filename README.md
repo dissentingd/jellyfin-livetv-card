@@ -3,7 +3,25 @@
 Generates a library card image for Jellyfin's **Live TV** view that matches
 the auto-generated cards Jellyfin builds for every other library (Movies,
 Shows, Collections, etc.) — then uploads it straight to your server. No
-plugin, no manual image editing.
+plugin required.
+
+## Don't want to run a script at all?
+
+If the bundled default photo (below) is good enough for you, you don't need
+Python, an API key, or any of the setup below — just download the finished
+image and set it yourself:
+
+<img src="assets/default_card_preview.png" alt="Default Live TV card preview" width="480">
+
+**[⬇ Download the full-size image](assets/default_card_preview.png)** (right-click →
+Save Image As, or open it and save from there), then in Jellyfin's web UI:
+click the **⋮** (three-dot) menu in the bottom-right corner of the
+**Live TV** library card → **Edit Images** → upload the file you just
+downloaded. Done — no script needed.
+
+The rest of this README covers the scripted route, which is worth it if you
+want to use your *own* photo instead of the bundled default, or want to be
+able to re-run this later (e.g. after picking a different image).
 
 ## Why this exists
 
