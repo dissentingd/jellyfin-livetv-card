@@ -39,6 +39,8 @@ reimplementing, since Jellyfin never runs it for this item type at all.
    ```bash
    pip install -r requirements.txt
    ```
+   (No `pip`? Most current Python installs already include it — if yours
+   doesn't, see [pip's own install instructions](https://pip.pypa.io/en/stable/installation/).)
 
 3. **Get an admin API key**: Jellyfin Dashboard → API Keys → `+` (the `+`
    button in the top-right) → give it a name → copy the key.
