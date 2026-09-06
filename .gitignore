@@ -1,0 +1,7 @@
+.env
+source_image.jpg
+source_image.jpeg
+source_image.png
+output_card.png
+__pycache__/
+*.pyc
